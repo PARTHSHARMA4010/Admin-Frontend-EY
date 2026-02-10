@@ -1,11 +1,12 @@
-import { LayoutDashboard, Store, Truck, Activity } from 'lucide-react';
+import { LayoutDashboard, Store, Truck, Box, Activity } from 'lucide-react'; // Added Box icon
 import { NavLink } from 'react-router-dom';
 
 const Sidebar = () => {
   const links = [
     { name: 'Overview', icon: LayoutDashboard, path: '/' },
     { name: 'Service Hubs', icon: Store, path: '/centers' },
-    { name: 'Supply Chain', icon: Truck, path: '/supply' },
+    { name: 'Supply Chain', icon: Truck, path: '/supply' }, // Vendor Management
+    { name: 'Inventory Ingest', icon: Box, path: '/inventory' }, // NEW PAGE
   ];
 
   return (
