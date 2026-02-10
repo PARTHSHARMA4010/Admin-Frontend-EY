@@ -1,0 +1,32 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  @apply bg-space-900 text-white font-sans antialiased;
+  background-image: 
+    radial-gradient(circle at 50% 0%, rgba(0, 242, 255, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 80% 80%, rgba(189, 0, 255, 0.05) 0%, transparent 50%);
+  min-height: 100vh;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  @apply bg-space-900;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-space-700 rounded-full;
+}
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-neon-blue;
+}
+
+/* Glassmorphism Utility */
+.glass-panel {
+  @apply bg-space-800/60 backdrop-blur-md border border-white/10 shadow-xl;
+}
