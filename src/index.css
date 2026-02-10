@@ -1,32 +1,44 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 body {
-  @apply bg-space-900 text-white font-sans antialiased;
-  background-image: 
-    radial-gradient(circle at 50% 0%, rgba(0, 242, 255, 0.1) 0%, transparent 50%),
-    radial-gradient(circle at 80% 80%, rgba(189, 0, 255, 0.05) 0%, transparent 50%);
-  min-height: 100vh;
+  @apply bg-zinc-950 text-zinc-200 font-sans antialiased;
+  /* Subtle Tech Grid Background */
+  background-image: radial-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 24px 24px;
 }
 
-/* Custom Scrollbar */
-::-webkit-scrollbar {
-  width: 8px;
-}
-::-webkit-scrollbar-track {
-  @apply bg-space-900;
-}
-::-webkit-scrollbar-thumb {
-  @apply bg-space-700 rounded-full;
-}
-::-webkit-scrollbar-thumb:hover {
-  @apply bg-neon-blue;
+/* --- PROFESSIONAL COMPONENT CLASSES --- */
+
+/* High-End Input Fields */
+input, select, textarea {
+  @apply bg-zinc-900 border border-zinc-800 rounded-md px-4 py-2.5 text-sm text-white 
+  focus:outline-none focus:border-zinc-600 focus:ring-1 focus:ring-zinc-600 
+  transition-all placeholder-zinc-600 font-medium;
 }
 
-/* Glassmorphism Utility */
-.glass-panel {
-  @apply bg-space-800/60 backdrop-blur-md border border-white/10 shadow-xl;
+/* The "Obsidian" Card */
+.obsidian-card {
+  @apply bg-zinc-900/80 backdrop-blur-sm border border-white/5 rounded-xl shadow-sm hover:border-white/10 transition-all;
 }
+
+/* Primary Action Button (White) */
+.btn-primary {
+  @apply bg-white text-black font-semibold px-4 py-2 rounded-md hover:bg-zinc-200 
+  transition-colors text-sm flex items-center gap-2 shadow-lg shadow-white/5;
+}
+
+/* Secondary Button (Dark) */
+.btn-secondary {
+  @apply bg-zinc-800 text-zinc-300 border border-zinc-700 font-medium px-4 py-2 rounded-md 
+  hover:bg-zinc-700 hover:text-white transition-colors text-sm;
+}
+
+/* Minimalist Scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { @apply bg-zinc-950; }
+::-webkit-scrollbar-thumb { @apply bg-zinc-800 rounded-full; }
+::-webkit-scrollbar-thumb:hover { @apply bg-zinc-600; }

@@ -1,72 +1,132 @@
 import { useState, useEffect } from 'react';
 import { api } from '../services/api';
-import { MapPin, Phone, Server } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { MapPin, Phone, Server, Plus, X, Search, Battery } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const ServiceCenters = () => {
   const [centers, setCenters] = useState<any[]>([]);
+  const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ centerId: '', name: '', location: '', phone: '', capacity: 10 });
+  const [filter, setFilter] = useState('');
 
-  useEffect(() => {
-    fetchCenters();
-  }, []);
+  useEffect(() => { fetchCenters(); }, []);
 
   const fetchCenters = async () => {
-    try {
-      const res = await api.getAllCenters();
-      setCenters(res.data);
-    } catch (err) { console.error(err); }
+    try { const res = await api.getAllCenters(); setCenters(res.data); } catch (err) {}
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    try {
-      await api.registerCenter(form);
-      fetchCenters(); // Refresh list
-      alert("Center Deployed Successfully");
-    } catch (err) { alert("Deployment Failed"); }
+    try { await api.registerCenter(form); fetchCenters(); setShowForm(false); } catch (err) { alert("ID Exists"); }
   };
 
-  return (
-    <div className="space-y-8">
-      <h1 className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-500">Service Hubs</h1>
+  // Simple filter logic
+  const filteredCenters = centers.filter(c => 
+    c.name.toLowerCase().includes(filter.toLowerCase()) || 
+    c.centerId.toLowerCase().includes(filter.toLowerCase())
+  );
 
-      {/* Registration Form */}
-      <div className="glass-panel p-6 rounded-xl border-l-4 border-neon-blue">
-        <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-          <Server className="text-neon-blue" /> Deploy New Node
-        </h2>
-        <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-4">
-          <input placeholder="Center ID (e.g., DEL-01)" className="p-3 bg-space-900 border border-white/10 rounded text-white focus:border-neon-blue outline-none transition-colors" onChange={e => setForm({...form, centerId: e.target.value})} />
-          <input placeholder="Center Name" className="p-3 bg-space-900 border border-white/10 rounded text-white focus:border-neon-blue outline-none transition-colors" onChange={e => setForm({...form, name: e.target.value})} />
-          <input placeholder="Location" className="p-3 bg-space-900 border border-white/10 rounded text-white focus:border-neon-blue outline-none transition-colors" onChange={e => setForm({...form, location: e.target.value})} />
-          <input placeholder="Phone" className="p-3 bg-space-900 border border-white/10 rounded text-white focus:border-neon-blue outline-none transition-colors" onChange={e => setForm({...form, phone: e.target.value})} />
-          <button type="submit" className="col-span-2 bg-neon-blue text-black font-bold p-3 rounded hover:shadow-neon-blue transition-all">
-            INITIALIZE CENTER
-          </button>
-        </form>
+  return (
+    <div className="flex flex-col h-[calc(100vh-64px)] max-w-7xl mx-auto w-full gap-6">
+      
+      {/* Header Actions */}
+      <div className="flex justify-between items-end border-b border-app-700 pb-6">
+        <div>
+          <h1 className="text-2xl font-semibold text-white tracking-tight">Service Nodes</h1>
+          <p className="text-app-500 text-sm mt-1">Manage physical service centers and maintenance capacity.</p>
+        </div>
+        <button 
+          onClick={() => setShowForm(!showForm)}
+          className={`px-4 py-2 rounded-md text-sm font-medium flex items-center gap-2 transition-all ${showForm ? 'bg-app-800 text-white' : 'bg-white text-black hover:bg-zinc-200'}`}
+        >
+          {showForm ? <><X size={16}/> Cancel</> : <><Plus size={16}/> Deploy Node</>}
+        </button>
       </div>
 
-      {/* List View */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {centers.map((center, idx) => (
+      {/* Collapsible Registration Drawer */}
+      <AnimatePresence>
+        {showForm && (
           <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: idx * 0.1 }}
-            key={center._id} 
-            className="glass-panel p-5 rounded-xl hover:border-neon-blue/50 transition-colors group"
+            initial={{ height: 0, opacity: 0 }} 
+            animate={{ height: 'auto', opacity: 1 }} 
+            exit={{ height: 0, opacity: 0 }}
+            className="overflow-hidden"
           >
-            <div className="flex justify-between items-start mb-4">
-              <h3 className="font-bold text-xl text-white group-hover:text-neon-blue transition-colors">{center.name}</h3>
-              <span className="text-xs bg-green-500/20 text-green-400 px-2 py-1 rounded">ONLINE</span>
-            </div>
-            <div className="space-y-2 text-sm text-gray-400">
-              <p className="flex items-center gap-2"><MapPin size={14}/> {center.location}</p>
-              <p className="flex items-center gap-2"><Phone size={14}/> {center.phone}</p>
-              <p className="text-white mt-2 pt-2 border-t border-white/10">Capacity: <span className="text-neon-blue">{center.capacity} Units</span></p>
+            <div className="obsidian-card p-6 mb-6 bg-app-900">
+              <h3 className="text-xs font-mono text-app-500 uppercase mb-4">Node Configuration</h3>
+              <form onSubmit={handleSubmit} className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                <input placeholder="Node ID (e.g. DEL-01)" required onChange={e => setForm({...form, centerId: e.target.value})} />
+                <input placeholder="Center Name" required onChange={e => setForm({...form, name: e.target.value})} />
+                <input placeholder="Location" required onChange={e => setForm({...form, location: e.target.value})} />
+                <input placeholder="Phone" required onChange={e => setForm({...form, phone: e.target.value})} />
+                <button type="submit" className="bg-brand-500 hover:bg-brand-600 text-black font-semibold rounded transition-colors text-sm">
+                  Initialize
+                </button>
+              </form>
             </div>
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Search & Grid */}
+      <div className="relative">
+        <Search className="absolute left-3 top-2.5 text-app-500" size={14} />
+        <input 
+          placeholder="Search nodes..." 
+          className="pl-9 w-full md:w-64 mb-6 bg-app-950" 
+          onChange={e => setFilter(e.target.value)}
+        />
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 overflow-y-auto pb-4 custom-scrollbar">
+        {filteredCenters.map((center) => (
+          <div key={center._id} className="obsidian-card p-5 group hover:border-white/20 transition-all flex flex-col justify-between h-48">
+            
+            {/* Top Section */}
+            <div>
+              <div className="flex justify-between items-start mb-2">
+                <div className="flex items-center gap-3">
+                  <div className="p-1.5 rounded bg-app-800 text-zinc-400">
+                    <Server size={16} />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-white text-sm group-hover:text-brand-500 transition-colors">{center.name}</h3>
+                    <span className="text-[10px] font-mono text-app-500 bg-app-950 px-1.5 py-0.5 rounded">{center.centerId}</span>
+                  </div>
+                </div>
+                <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"></div>
+              </div>
+
+              <div className="space-y-1 mt-3">
+                <div className="flex items-center gap-2 text-xs text-zinc-400">
+                  <MapPin size={12} /> {center.location}
+                </div>
+                <div className="flex items-center gap-2 text-xs text-zinc-400">
+                  <Phone size={12} /> {center.phone}
+                </div>
+              </div>
+            </div>
+
+            {/* Bottom Section: Capacity Viz */}
+            <div className="mt-4 pt-4 border-t border-app-800/50">
+              <div className="flex justify-between items-end mb-1">
+                <span className="text-[10px] uppercase text-app-500 font-bold flex items-center gap-1">
+                  <Battery size={10} /> Load Capacity
+                </span>
+                <span className="text-xs font-mono text-white">{center.capacity} Units</span>
+              </div>
+              {/* Visual Progress Bar */}
+              <div className="flex gap-0.5 h-1.5">
+                {[...Array(10)].map((_, i) => (
+                  <div 
+                    key={i} 
+                    className={`flex-1 rounded-sm ${i < 3 ? 'bg-zinc-600' : 'bg-app-800'}`} 
+                  />
+                ))}
+              </div>
+            </div>
+
+          </div>
         ))}
       </div>
     </div>

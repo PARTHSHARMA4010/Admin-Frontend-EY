@@ -1,17 +1,12 @@
 import { useState, useEffect } from 'react';
 import { api } from '../services/api';
-import { ShieldCheck, BarChart3, Search, Factory, Zap, Plus, X, Globe, AlertTriangle } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
-import clsx from 'clsx';
+import { Search, Factory, Plus, BarChart2, AlertCircle } from 'lucide-react';
 
 const SupplyChain = () => {
   const [vendors, setVendors] = useState<any[]>([]);
   const [showRegister, setShowRegister] = useState(false);
-  
-  // Registration Form State
   const [vendorForm, setVendorForm] = useState({ vendor_id: '', name: '', category: '', contact: '' });
   
-  // Analytics State
   const [analyticsId, setAnalyticsId] = useState('');
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(false);
@@ -23,12 +18,7 @@ const SupplyChain = () => {
   };
 
   const handleRegister = async () => {
-    try { 
-      await api.registerVendor(vendorForm); 
-      alert("Vendor Authorized & Added to Blockchain"); 
-      setShowRegister(false);
-      fetchVendors(); 
-    } catch { alert("Error: Vendor ID might already exist"); }
+    try { await api.registerVendor(vendorForm); setShowRegister(false); fetchVendors(); } catch { alert("Error"); }
   };
 
   const runScan = async (id: string) => {
@@ -36,220 +26,146 @@ const SupplyChain = () => {
     setAnalyticsId(id);
     try {
       const res = await api.getVendorAnalytics(id);
-      // Artificial delay for "Scanning" effect to look cool
-      setTimeout(() => {
-        setStats(res.data);
-        setLoading(false);
-      }, 800);
-    } catch { 
-      alert("Vendor Not Found"); 
-      setLoading(false);
-    }
+      setTimeout(() => { setStats(res.data); setLoading(false); }, 500);
+    } catch { alert("Vendor Not Found"); setLoading(false); }
   };
 
   return (
-    <div className="space-y-6 h-[calc(100vh-100px)] flex flex-col">
-      {/* --- HEADER SECTION --- */}
-      <div className="flex justify-between items-center pb-4 border-b border-white/5">
+    <div className="flex flex-col h-[calc(100vh-64px)] gap-8 max-w-7xl mx-auto w-full">
+      {/* Header */}
+      <div className="flex justify-between items-end border-b border-app-700 pb-6">
         <div>
-          <h1 className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-neon-purple to-pink-500">
-            Global Supply Network
-          </h1>
-          <p className="text-gray-400 text-sm mt-1 flex items-center gap-2">
-            <Globe size={14} /> Tracking {vendors.length} Active Partners across 12 Regions
-          </p>
+          <h1 className="text-2xl font-semibold text-white tracking-tight">Supply Chain Network</h1>
+          <p className="text-app-500 text-sm mt-1">Global vendor directory and real-time durability tracking.</p>
         </div>
         <button 
           onClick={() => setShowRegister(!showRegister)}
-          className={clsx(
-            "flex items-center gap-2 px-6 py-3 rounded-lg font-bold transition-all border",
-            showRegister 
-              ? "bg-red-500/10 text-red-500 border-red-500 hover:bg-red-500 hover:text-white"
-              : "bg-neon-purple/10 text-neon-purple border-neon-purple hover:bg-neon-purple hover:text-white"
-          )}
+          className="btn-primary flex items-center gap-2"
         >
-          {showRegister ? <><X size={18}/> CANCEL</> : <><Plus size={18}/> ONBOARD NEW VENDOR</>}
+          {showRegister ? 'Cancel' : <><Plus size={16}/> Add Vendor</>}
         </button>
       </div>
 
-      {/* --- COLLAPSIBLE REGISTRATION PANEL --- */}
-      <AnimatePresence>
-        {showRegister && (
-          <motion.div 
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            className="overflow-hidden"
-          >
-            <div className="glass-panel p-8 rounded-xl border-t-4 border-neon-purple mb-6 grid grid-cols-1 md:grid-cols-2 gap-8 relative">
-              <div className="space-y-4">
-                <h3 className="text-xl font-bold text-white flex items-center gap-2">
-                  <ShieldCheck className="text-neon-purple" /> Vendor Authorization Protocol
-                </h3>
-                <p className="text-gray-400 text-sm">
-                  Registering a new entity creates an immutable record in the supply chain database. Ensure ID uniqueness.
-                </p>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="col-span-2">
-                  <label className="text-xs text-gray-500 uppercase">Company Name</label>
-                  <input className="w-full bg-space-900 border border-white/10 rounded p-3 text-white focus:border-neon-purple outline-none" 
-                    onChange={e => setVendorForm({...vendorForm, name: e.target.value})} placeholder="e.g. Bosch Automotive" />
-                </div>
-                <div>
-                  <label className="text-xs text-gray-500 uppercase">Vendor ID</label>
-                  <input className="w-full bg-space-900 border border-white/10 rounded p-3 text-white focus:border-neon-purple outline-none" 
-                    onChange={e => setVendorForm({...vendorForm, vendor_id: e.target.value})} placeholder="V-XX-00" />
-                </div>
-                <div>
-                  <label className="text-xs text-gray-500 uppercase">Category</label>
-                  <input className="w-full bg-space-900 border border-white/10 rounded p-3 text-white focus:border-neon-purple outline-none" 
-                    onChange={e => setVendorForm({...vendorForm, category: e.target.value})} placeholder="Electronics" />
-                </div>
-                <div className="col-span-2">
-                  <label className="text-xs text-gray-500 uppercase">Contact Channel</label>
-                  <input className="w-full bg-space-900 border border-white/10 rounded p-3 text-white focus:border-neon-purple outline-none" 
-                    onChange={e => setVendorForm({...vendorForm, contact: e.target.value})} placeholder="supply@domain.com" />
-                </div>
-                <button onClick={handleRegister} className="col-span-2 mt-2 bg-neon-purple text-white font-bold py-3 rounded hover:shadow-[0_0_15px_rgba(189,0,255,0.4)] transition-all">
-                  AUTHORIZE & SAVE ENTITY
-                </button>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Registration Panel (Collapsible) */}
+      {showRegister && (
+        <div className="obsidian-card p-6 animate-in slide-in-from-top-2">
+          <h3 className="text-xs font-mono text-app-500 uppercase mb-4">New Vendor Registration</h3>
+          <div className="grid grid-cols-4 gap-4">
+            <input placeholder="Vendor ID (e.g. V-DENSO-09)" onChange={e => setVendorForm({...vendorForm, vendor_id: e.target.value})} />
+            <input placeholder="Company Name" onChange={e => setVendorForm({...vendorForm, name: e.target.value})} />
+            <input placeholder="Category" onChange={e => setVendorForm({...vendorForm, category: e.target.value})} />
+            <input placeholder="Contact Email" onChange={e => setVendorForm({...vendorForm, contact: e.target.value})} />
+          </div>
+          <div className="mt-4 flex justify-end">
+            <button onClick={handleRegister} className="btn-secondary text-xs uppercase tracking-wider">
+              Confirm Entry
+            </button>
+          </div>
+        </div>
+      )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 flex-1 min-h-0">
+      <div className="grid grid-cols-12 gap-8 flex-1 min-h-0">
         
-        {/* --- LEFT: SCROLLABLE VENDOR GRID --- */}
-        <div className="lg:col-span-8 overflow-y-auto pr-2 space-y-4 h-full custom-scrollbar">
-          {vendors.map((v, i) => (
-            <motion.div 
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: i * 0.05 }}
+        {/* LEFT: Vendor Directory */}
+        <div className="col-span-8 overflow-y-auto pr-2 space-y-2">
+          <div className="text-xs font-mono text-app-500 uppercase mb-2 px-1">Registered Partners ({vendors.length})</div>
+          {vendors.map((v) => (
+            <div 
               key={v.vendor_id}
               onClick={() => runScan(v.vendor_id)}
-              className={clsx(
-                "glass-panel p-5 rounded-xl cursor-pointer transition-all border-l-4 group relative overflow-hidden",
-                analyticsId === v.vendor_id ? "border-l-neon-blue bg-white/5" : "border-l-transparent hover:border-l-neon-purple"
-              )}
+              className={`p-4 rounded-md border cursor-pointer transition-all flex justify-between items-center group
+                ${analyticsId === v.vendor_id 
+                  ? 'bg-app-800 border-app-500 shadow-md' 
+                  : 'bg-app-950 border-app-700 hover:bg-app-900 hover:border-app-500'}`}
             >
-              <div className="flex justify-between items-center relative z-10">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded bg-space-900 flex items-center justify-center border border-white/10 group-hover:border-neon-purple/50 transition-colors">
-                    <Factory size={24} className="text-gray-400 group-hover:text-neon-purple" />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-lg text-white group-hover:text-neon-purple transition-colors">{v.name}</h3>
-                    <div className="text-xs text-gray-500 font-mono flex items-center gap-2">
-                      <span className="bg-white/10 px-1 rounded text-gray-300">{v.vendor_id}</span>
-                      <span>• {v.category}</span>
-                    </div>
-                  </div>
+              <div className="flex items-center gap-4">
+                <div className="w-8 h-8 rounded bg-app-900 flex items-center justify-center border border-app-700 text-app-500">
+                  <Factory size={14} />
                 </div>
-                <div className="text-right">
-                  <div className="text-xs text-gray-500 mb-1">DURABILITY RATING</div>
-                  {/* We use the stored static score if available, or just a placeholder */}
-                  <div className="text-xl font-mono text-white/50 group-hover:text-white transition-colors">--.--%</div>
+                <div>
+                  <h3 className="text-sm font-medium text-white">{v.name}</h3>
+                  <div className="text-xs text-app-500 font-mono">{v.vendor_id}</div>
                 </div>
               </div>
-              {/* Hover Effect BG */}
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-transparent to-neon-purple/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
-            </motion.div>
+              <div className="text-xs text-app-500 group-hover:text-white transition-colors font-mono">
+                {v.category}
+              </div>
+            </div>
           ))}
         </div>
 
-        {/* --- RIGHT: LIVE INTELLIGENCE PANEL (FIXED) --- */}
-        <div className="lg:col-span-4 h-full">
-          <div className="glass-panel h-full rounded-xl border border-white/10 p-6 flex flex-col relative overflow-hidden">
-            {/* Background Decor */}
-            <div className="absolute top-0 right-0 p-40 bg-neon-blue/5 blur-3xl rounded-full pointer-events-none"></div>
-
-            <h2 className="text-xl font-bold mb-6 flex items-center gap-2 text-neon-blue relative z-10">
-              <BarChart3 size={20}/> Durability Intelligence
+        {/* RIGHT: Analytics Panel (The "Black Box") */}
+        <div className="col-span-4 h-full flex flex-col">
+          <div className="obsidian-card h-full p-6 flex flex-col bg-app-900">
+            <h2 className="text-sm font-bold text-white uppercase tracking-wider mb-6 flex items-center gap-2">
+              <BarChart2 size={16} className="text-app-500"/> Diagnostics
             </h2>
 
-            {/* MANUAL SEARCH BAR (IT IS BACK!) */}
-            <div className="flex gap-2 mb-8 relative z-10">
+            {/* Manual Search */}
+            <div className="flex gap-2 mb-8">
               <div className="relative flex-1">
-                <Search className="absolute left-3 top-3 text-gray-500" size={16} />
+                <Search className="absolute left-3 top-2.5 text-app-500" size={14} />
                 <input 
                   value={analyticsId}
                   onChange={(e) => setAnalyticsId(e.target.value)}
-                  placeholder="Enter Vendor ID..." 
-                  className="w-full bg-space-900 border border-white/10 rounded-lg pl-10 p-2 text-white focus:border-neon-blue outline-none" 
+                  placeholder="Search ID..." 
+                  className="pl-9 w-full bg-app-950"
                 />
               </div>
-              <button onClick={() => runScan(analyticsId)} className="bg-neon-blue text-black font-bold px-4 rounded hover:shadow-neon-blue transition-all">
-                SCAN
-              </button>
             </div>
 
-            {/* CONTENT AREA */}
-            <div className="flex-1 flex flex-col items-center justify-center relative z-10">
+            {/* Results */}
+            <div className="flex-1 flex flex-col justify-center items-center">
               {loading ? (
-                 <div className="text-center space-y-4">
-                    <div className="w-16 h-16 border-4 border-neon-blue border-t-transparent rounded-full animate-spin mx-auto"></div>
-                    <div className="text-neon-blue font-mono text-sm animate-pulse">ANALYZING BATCH DATA...</div>
+                 <div className="flex flex-col items-center gap-3">
+                   <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                   <div className="text-xs text-app-500 font-mono uppercase">Processing Metrics...</div>
                  </div>
               ) : stats ? (
-                <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="w-full space-y-6">
+                <div className="w-full space-y-8 animate-in fade-in duration-500">
                   
-                  {/* MASSIVE SCORE CARD */}
-                  <div className="text-center py-8 relative">
-                    <div className="text-sm text-gray-400 mb-2 uppercase tracking-widest">Calculated Durability</div>
-                    <div className={clsx(
-                      "text-7xl font-black bg-clip-text text-transparent drop-shadow-2xl",
-                      stats.calculated_durability_score > 98 ? "bg-gradient-to-br from-green-400 to-emerald-600" :
-                      stats.calculated_durability_score > 90 ? "bg-gradient-to-br from-yellow-400 to-orange-600" :
-                      "bg-gradient-to-br from-red-400 to-red-600"
-                    )}>
-                      {stats.calculated_durability_score}%
+                  {/* Score */}
+                  <div className="text-center relative">
+                    <div className="text-7xl font-mono font-light text-white tracking-tighter">
+                      {Math.floor(stats.calculated_durability_score)}
+                      <span className="text-2xl text-app-500">%</span>
                     </div>
-                    <div className="mt-2 text-white font-bold text-xl">{stats.vendor_name}</div>
+                    <div className="text-xs text-app-500 uppercase tracking-widest mt-2">Durability Index</div>
                   </div>
 
-                  {/* STATS GRID */}
-                  <div className="grid grid-cols-2 gap-3 w-full">
-                    <div className="bg-space-900 p-4 rounded-lg border border-white/5 text-center">
-                      <div className="text-xs text-gray-500 uppercase mb-1">Total Parts</div>
-                      <div className="text-2xl font-mono text-white">{stats.total_parts_supplied.toLocaleString()}</div>
+                  {/* Data Grid */}
+                  <div className="grid grid-cols-2 gap-px bg-app-700 rounded-lg overflow-hidden border border-app-700">
+                    <div className="bg-app-900 p-4 text-center">
+                      <div className="text-xs text-app-500 uppercase mb-1">Supplied</div>
+                      <div className="text-lg font-mono text-white">{stats.total_parts_supplied}</div>
                     </div>
-                    <div className="bg-red-500/10 p-4 rounded-lg border border-red-500/20 text-center">
-                      <div className="text-xs text-red-400 uppercase mb-1">Failures</div>
-                      <div className="text-2xl font-mono text-red-500">{stats.total_failures_detected}</div>
-                    </div>
-                    <div className="bg-space-900 p-4 rounded-lg border border-white/5 text-center col-span-2">
-                      <div className="text-xs text-gray-500 uppercase mb-1">Batches Analyzed</div>
-                      <div className="text-xl font-mono text-white">{stats.batches_analyzed}</div>
+                    <div className="bg-app-900 p-4 text-center">
+                      <div className="text-xs text-app-500 uppercase mb-1">Failures</div>
+                      <div className={`text-lg font-mono ${stats.total_failures_detected > 0 ? 'text-status-error' : 'text-white'}`}>
+                        {stats.total_failures_detected}
+                      </div>
                     </div>
                   </div>
 
-                  {/* Recommendation Engine (Fake AI Insight) */}
-                  <div className="bg-white/5 p-4 rounded border-l-2 border-neon-blue mt-4">
-                    <div className="flex items-center gap-2 text-neon-blue text-xs font-bold mb-1">
-                      <Zap size={12} /> AI RECOMMENDATION
+                  <div className="text-center">
+                    <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium border
+                      ${stats.calculated_durability_score > 98 
+                        ? 'bg-emerald-950/30 border-emerald-900 text-emerald-500' 
+                        : 'bg-red-950/30 border-red-900 text-red-500'}`}>
+                      <div className={`w-1.5 h-1.5 rounded-full ${stats.calculated_durability_score > 98 ? 'bg-emerald-500' : 'bg-red-500'}`}></div>
+                      {stats.calculated_durability_score > 98 ? 'OPTIMAL PERFORMANCE' : 'AUDIT REQUIRED'}
                     </div>
-                    <p className="text-xs text-gray-300 leading-relaxed">
-                      {stats.calculated_durability_score > 99 
-                        ? "Vendor performance is optimal. Recommended for 'Preferred Supplier' status extension." 
-                        : "Detecting minor deviations in recent batches. Suggest initiating Quality Audit Protocol A-12."}
-                    </p>
                   </div>
 
-                </motion.div>
+                </div>
               ) : (
-                <div className="text-center opacity-40">
-                  <Search size={64} className="mx-auto mb-4 text-gray-600"/>
-                  <p className="text-sm text-gray-400">Select a vendor or enter ID<br/>to initialize deep-scan analytics.</p>
+                <div className="text-center text-app-500 text-xs font-mono uppercase">
+                  No Data Loaded
                 </div>
               )}
             </div>
           </div>
         </div>
-
       </div>
     </div>
   );

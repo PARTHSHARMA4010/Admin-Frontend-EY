@@ -1,45 +1,72 @@
-import { LayoutDashboard, Store, Truck, Box, Activity } from 'lucide-react'; // Added Box icon
+import { LayoutDashboard, Store, Truck, Box, Activity, ChevronRight } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
+import clsx from 'clsx';
 
 const Sidebar = () => {
   const links = [
-    { name: 'Overview', icon: LayoutDashboard, path: '/' },
-    { name: 'Service Hubs', icon: Store, path: '/centers' },
-    { name: 'Supply Chain', icon: Truck, path: '/supply' }, // Vendor Management
-    { name: 'Inventory Ingest', icon: Box, path: '/inventory' }, // NEW PAGE
+    { name: 'Dashboard', icon: LayoutDashboard, path: '/' },
+    { name: 'Service Nodes', icon: Store, path: '/centers' },
+    { name: 'Supply Chain', icon: Truck, path: '/supply' },
+    { name: 'Inventory', icon: Box, path: '/inventory' },
   ];
 
   return (
-    <div className="w-64 h-screen glass-panel fixed left-0 top-0 border-r border-white/10 flex flex-col p-6 z-50">
-      <div className="text-2xl font-bold tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-neon-blue to-neon-purple mb-10">
-        AUTO.AI <span className="text-xs text-white/50 block font-normal">ADMIN TERMINAL</span>
+    <div className="w-64 h-screen bg-zinc-950 border-r border-white/10 fixed left-0 top-0 flex flex-col z-50">
+      {/* Brand Header */}
+      <div className="p-6 pb-8">
+        <div className="flex items-center gap-3 mb-1">
+          <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center text-black font-bold font-mono text-lg">
+            A
+          </div>
+          <span className="font-bold text-white tracking-tight text-lg">AUTO.AI</span>
+        </div>
+        <div className="text-[10px] text-zinc-500 font-mono uppercase tracking-widest pl-1">
+          Enterprise Admin
+        </div>
       </div>
       
-      <nav className="space-y-4">
+      {/* Navigation */}
+      <nav className="flex-1 px-3 space-y-1">
+        <div className="px-3 text-xs font-semibold text-zinc-600 uppercase tracking-wider mb-2 mt-2">
+          Platform
+        </div>
         {links.map((link) => (
           <NavLink
             key={link.path}
             to={link.path}
             className={({ isActive }) =>
-              `flex items-center gap-3 p-3 rounded-lg transition-all duration-300 ${
+              clsx(
+                "flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-all group",
                 isActive 
-                ? 'bg-neon-blue/10 text-neon-blue border border-neon-blue/30 shadow-[0_0_15px_rgba(0,242,255,0.2)]' 
-                : 'text-gray-400 hover:text-white hover:bg-white/5'
-              }`
+                  ? "bg-zinc-900 text-white border border-white/5 shadow-inner" 
+                  : "text-zinc-500 hover:text-zinc-300 hover:bg-zinc-900/50"
+              )
             }
           >
-            <link.icon size={20} />
-            <span className="font-medium">{link.name}</span>
+            <div className="flex items-center gap-3">
+              <link.icon size={18} className="opacity-80 group-hover:opacity-100" />
+              <span>{link.name}</span>
+            </div>
+            {/* Active Indicator Dot */}
+            <div className={clsx("w-1.5 h-1.5 rounded-full bg-white transition-opacity", 
+              ({ isActive }: { isActive: boolean }) => isActive ? "opacity-100" : "opacity-0")} 
+            />
           </NavLink>
         ))}
       </nav>
       
-      <div className="mt-auto p-4 rounded-lg bg-gradient-to-br from-neon-purple/20 to-transparent border border-neon-purple/20">
-        <div className="flex items-center gap-2 text-neon-purple mb-1">
-          <Activity size={16} />
-          <span className="text-xs font-bold">SYSTEM ONLINE</span>
+      {/* Footer Status */}
+      <div className="p-4 border-t border-white/5 bg-zinc-900/30">
+        <div className="flex items-center gap-3">
+          <div className="relative">
+            <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
+            <div className="w-2 h-2 bg-emerald-500 rounded-full absolute top-0 animate-ping opacity-75"></div>
+          </div>
+          <div className="flex flex-col">
+            <span className="text-xs font-medium text-white">System Operational</span>
+            <span className="text-[10px] text-zinc-500 font-mono">v2.4.0 (Stable)</span>
+          </div>
         </div>
-        <div className="text-xs text-gray-400">v2.4.0 Stable</div>
       </div>
     </div>
   );
