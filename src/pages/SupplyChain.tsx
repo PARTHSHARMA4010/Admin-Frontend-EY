@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { api } from '../services/api';
-import { Search, Factory, Plus, BarChart2, AlertCircle } from 'lucide-react';
+import { Search, Factory, Plus, BarChart2 } from 'lucide-react';
 
 const SupplyChain = () => {
   const [vendors, setVendors] = useState<any[]>([]);

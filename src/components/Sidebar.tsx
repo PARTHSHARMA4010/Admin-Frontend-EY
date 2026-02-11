@@ -1,4 +1,4 @@
-import { LayoutDashboard, Store, Truck, Box, Activity, ChevronRight } from 'lucide-react';
+import { LayoutDashboard, Store, Truck, Box} from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import clsx from 'clsx';
 

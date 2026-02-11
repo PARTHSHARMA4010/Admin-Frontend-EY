@@ -204,7 +204,7 @@ const Overview = () => {
                   paddingAngle={5}
                   dataKey="value"
                 >
-                  {vendorData.map((entry, index) => (
+                  {vendorData.map((_, index) => (
                     // Note: using fixed COLORS array here instead of vendorData length to ensure colors render
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} stroke="rgba(0,0,0,0)" />
                   ))}
