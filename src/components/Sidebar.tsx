@@ -1,14 +1,17 @@
-import { LayoutDashboard, Store, Truck, Box} from 'lucide-react';
+import { LayoutDashboard, Store, Truck, Box, FileText} from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import clsx from 'clsx';
 
 const Sidebar = () => {
-  const links = [
-    { name: 'Dashboard', icon: LayoutDashboard, path: '/' },
-    { name: 'Service Nodes', icon: Store, path: '/centers' },
-    { name: 'Supply Chain', icon: Truck, path: '/supply' },
-    { name: 'Inventory', icon: Box, path: '/inventory' },
-  ];
+
+// ... inside component ...
+const links = [
+  { name: 'Dashboard', icon: LayoutDashboard, path: '/' },
+  { name: 'Service Nodes', icon: Store, path: '/centers' },
+  { name: 'Supply Chain', icon: Truck, path: '/supply' },
+  { name: 'Inventory', icon: Box, path: '/inventory' },
+  { name: 'Reports', icon: FileText, path: '/reports' }, // ✅ NEW LINK
+];
 
   return (
     <div className="w-64 h-screen bg-zinc-950 border-r border-white/10 fixed left-0 top-0 flex flex-col z-50">
