@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { 
-  Search, Factory, Plus, BarChart2, Star, Clock, 
+  Search, Factory, Plus, Star, Clock, 
   Activity, MessageSquare, Mail, ShieldCheck, AlertOctagon, 
   CheckCircle2, TrendingUp, Cpu, Send
 } from 'lucide-react';
