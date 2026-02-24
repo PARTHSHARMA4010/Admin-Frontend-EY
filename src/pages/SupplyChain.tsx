@@ -1,33 +1,9 @@
 import { useState, useEffect } from 'react';
-import { api } from '../services/api';
 import { 
   Search, Factory, Plus, BarChart2, Star, Clock, 
   Activity, MessageSquare, Mail, ShieldCheck, AlertOctagon, 
-  CheckCircle2, TrendingUp 
+  CheckCircle2, TrendingUp, Cpu, Send
 } from 'lucide-react';
-
-// --- MOCK DATA FOR DEMO PURPOSES ---
-// Used when the backend returns empty/incomplete data to keep UI looking premium
-const MOCK_FALLBACK = {
-  vendor_id: "V-DENSO-09",
-  name: "Denso Corporation",
-  category: "Electronics",
-  contact: { email: "supply_chain@denso.com" },
-  local_metrics: {
-    durability_score: 98.4,
-    company_local_rating: 4.8,
-    total_jobs: 142,
-    failed_jobs: 3,
-    avg_response_time: 12,
-    company_reviews: [
-      "Exceptional build quality on the ECU units.",
-      "Shipment arrived 2 days early. Great logistics.",
-      "Zero defects in the last batch of 500.",
-      "Support team resolved the voltage issue instantly."
-    ],
-    avg_rating: 4.9
-  }
-};
 
 const SupplyChain = () => {
   const [vendors, setVendors] = useState<any[]>([]);
@@ -38,70 +14,117 @@ const SupplyChain = () => {
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(false);
 
+  // Feedback State
+  const [feedbackForm, setFeedbackForm] = useState({ rating: 5, review: '' });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // 1. DYNAMIC FETCH: Get all vendors
   useEffect(() => { fetchVendors(); }, []);
 
   const fetchVendors = async () => {
-    try { const res = await api.getAllVendors(); setVendors(res.data); } catch (err) {}
+    try { 
+      const res = await fetch('https://eyvendornew.onrender.com/api/vendors');
+      const jsonResponse = await res.json();
+      const vendorArray = jsonResponse.data || [];
+      setVendors(vendorArray); 
+    } catch (err) {
+      console.error("Failed to fetch vendors", err);
+    }
   };
 
+  // 2. DYNAMIC POST: Register new vendor
   const handleRegister = async () => {
-    try { await api.registerVendor(vendorForm); setShowRegister(false); fetchVendors(); } catch { alert("Error"); }
+    try { 
+      const payload = {
+        vendor_id: vendorForm.vendor_id,
+        name: vendorForm.name,
+        category: vendorForm.category,
+        contact: { email: vendorForm.contact },
+        local_metrics: {
+          total_jobs: 0,
+          failed_jobs: 0,
+          durability_score: 100,
+          company_local_rating: 0,
+          avg_response_time: 0,
+          company_reviews: [],
+          avg_rating: 0
+        }
+      };
+
+      const res = await fetch('https://eyvendornew.onrender.com/api/vendor', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (res.ok) {
+        setShowRegister(false); 
+        setVendorForm({ vendor_id: '', name: '', category: '', contact: '' });
+        fetchVendors(); 
+      } else {
+        alert("Failed to register vendor. Please check the inputs.");
+      }
+    } catch { 
+      alert("Error connecting to the server."); 
+    }
   };
 
-  const runScan = async (id: string) => {
+  // 3. REAL-TIME SCAN LOGIC
+  const runScan = (id: string) => {
     setLoading(true);
     setAnalyticsId(id);
-    setStats(null); // Clear previous stats to show loading animation
+    setStats(null); 
+    setFeedbackForm({ rating: 5, review: '' }); // Reset feedback form on new scan
 
-    try {
-      const res = await api.getVendorAnalytics(id);
-      // Simulate "Processing" time for effect
-      setTimeout(() => { 
-        setStats(res.data || MOCK_FALLBACK); // Fallback if data is null
-        setLoading(false); 
-      }, 800);
-    } catch { 
-      // API Failed? Use local data or Mock data so UI never looks broken
-      setTimeout(() => {
-        const local = vendors.find(v => v.vendor_id === id);
-        setStats(local || MOCK_FALLBACK);
-        setLoading(false);
-      }, 800);
-    }
+    setTimeout(() => {
+      const foundVendor = vendors.find(v => 
+        v.vendor_id === id || 
+        (v._id && v._id.$oid === id) || 
+        v._id === id
+      );
+      setStats(foundVendor);
+      setLoading(false);
+    }, 500); 
   };
 
-  // Logic to mix Real Data with Mock Data if Real Data is "Empty" (zeros)
-  const getDisplayStats = () => {
-    if (!stats) return null;
-    
-    // Check if the data looks "empty" (common in new DBs)
-    const isEmpty = !stats.local_metrics || (stats.local_metrics.total_jobs === 0 && stats.local_metrics.durability_score === 100);
+  // 4. SUBMIT FEEDBACK LOGIC
+  const submitFeedback = () => {
+    if (!feedbackForm.review.trim()) return;
+    setIsSubmitting(true);
 
-    if (isEmpty) {
-      // Merge: Keep real Name/ID, but inject Mock Metrics so it looks good
-      return {
-        ...stats,
-        contact: stats.contact || MOCK_FALLBACK.contact,
-        local_metrics: MOCK_FALLBACK.local_metrics
-      };
-    }
-    return stats;
+    // Simulate API delay for UX
+    setTimeout(() => {
+      // Optimistic UI Update: push the new review to the top of the array
+      const updatedStats = { ...stats };
+      if (!updatedStats.local_metrics.company_reviews) {
+        updatedStats.local_metrics.company_reviews = [];
+      }
+      updatedStats.local_metrics.company_reviews.unshift(feedbackForm.review);
+      
+      // Update local rating visually
+      updatedStats.local_metrics.company_local_rating = 
+        ((updatedStats.local_metrics.company_local_rating + feedbackForm.rating) / 2).toFixed(1);
+
+      setStats(updatedStats);
+      setFeedbackForm({ rating: 5, review: '' }); // clear form
+      setIsSubmitting(false);
+    }, 600);
   };
-
-  const displayStats = getDisplayStats();
 
   return (
-    <div className="flex flex-col h-full gap-6">
+    <div className="flex flex-col h-full gap-6 text-zinc-100 font-sans bg-[#050505]">
       
       {/* Header */}
-      <div className="flex justify-between items-end border-b border-white/5 pb-4 shrink-0">
+      <div className="flex justify-between items-end border-b border-zinc-800 pb-5 shrink-0">
         <div>
-          <h1 className="text-2xl font-semibold text-white tracking-tight">Supply Chain Network</h1>
-          <p className="text-zinc-500 text-sm mt-1">Global vendor directory and real-time durability tracking.</p>
+          <h1 className="text-2xl font-bold text-white tracking-tight">
+            Supply Chain Intelligence
+          </h1>
+          <p className="text-zinc-500 text-sm mt-1">Cross-referencing vendor durability with real-time operations.</p>
         </div>
         <button 
           onClick={() => setShowRegister(!showRegister)}
-          className="btn-primary"
+          className="bg-white text-black hover:bg-zinc-200 px-4 py-2 rounded font-bold text-sm flex items-center gap-2 transition-all"
         >
           {showRegister ? 'Cancel' : <><Plus size={16}/> Add Vendor</>}
         </button>
@@ -109,213 +132,268 @@ const SupplyChain = () => {
 
       {/* Registration Panel */}
       {showRegister && (
-        <div className="obsidian-card p-6 animate-in slide-in-from-top-2 shrink-0 border-l-4 border-l-emerald-500">
-          <h3 className="text-xs font-mono text-white uppercase mb-4 flex items-center gap-2">
-            <Factory size={14}/> New Vendor Registration
+        <div className="bg-[#0a0a0a] p-6 rounded-xl border border-zinc-800 shadow-xl animate-in slide-in-from-top-2 shrink-0">
+          <h3 className="text-xs font-mono text-zinc-400 uppercase mb-5 flex items-center gap-2 font-bold tracking-widest">
+            <Factory size={14}/> Initialize New Partner
           </h3>
-          <div className="grid grid-cols-4 gap-4">
-            <input placeholder="Vendor ID (e.g. V-DENSO-09)" onChange={e => setVendorForm({...vendorForm, vendor_id: e.target.value})} />
-            <input placeholder="Company Name" onChange={e => setVendorForm({...vendorForm, name: e.target.value})} />
-            <input placeholder="Category" onChange={e => setVendorForm({...vendorForm, category: e.target.value})} />
-            <input placeholder="Contact Email" onChange={e => setVendorForm({...vendorForm, contact: e.target.value})} />
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <input placeholder="Vendor ID (e.g. V-Grapes-09)" value={vendorForm.vendor_id} onChange={e => setVendorForm({...vendorForm, vendor_id: e.target.value})} className="bg-[#050505] border border-zinc-800 p-3 rounded-lg text-sm text-white focus:border-zinc-500 transition-colors outline-none"/>
+            <input placeholder="Company Name" value={vendorForm.name} onChange={e => setVendorForm({...vendorForm, name: e.target.value})} className="bg-[#050505] border border-zinc-800 p-3 rounded-lg text-sm text-white focus:border-zinc-500 transition-colors outline-none"/>
+            <input placeholder="Category" value={vendorForm.category} onChange={e => setVendorForm({...vendorForm, category: e.target.value})} className="bg-[#050505] border border-zinc-800 p-3 rounded-lg text-sm text-white focus:border-zinc-500 transition-colors outline-none"/>
+            <input placeholder="Contact Email" value={vendorForm.contact} onChange={e => setVendorForm({...vendorForm, contact: e.target.value})} className="bg-[#050505] border border-zinc-800 p-3 rounded-lg text-sm text-white focus:border-zinc-500 transition-colors outline-none"/>
           </div>
-          <div className="mt-4 flex justify-end">
-            <button onClick={handleRegister} className="btn-secondary bg-white text-black hover:bg-zinc-200 border-none font-bold">
-              Initialize Partner
+          <div className="mt-5 flex justify-end">
+            <button onClick={handleRegister} className="bg-white text-black px-6 py-2 rounded font-bold text-sm hover:bg-zinc-200 transition-colors">
+              Deploy to Network
             </button>
           </div>
         </div>
       )}
 
-      <div className="grid grid-cols-12 gap-6 flex-1 min-h-0">
+      <div className="grid grid-cols-12 gap-8 flex-1 min-h-0">
         
         {/* LEFT: Vendor Directory List */}
-        <div className="col-span-12 lg:col-span-7 overflow-y-auto pr-2 space-y-2 custom-scrollbar">
-          <div className="flex justify-between items-center mb-2 px-1">
-             <div className="text-xs font-mono text-zinc-500 uppercase">Registered Partners ({vendors.length})</div>
-             <div className="text-[10px] text-zinc-600 font-mono">LIVE CONNECTION</div>
+        <div className="col-span-12 lg:col-span-5 overflow-y-auto pr-2 space-y-3 custom-scrollbar">
+          <div className="flex justify-between items-center mb-3 px-1">
+             <div className="text-xs font-mono text-zinc-500 uppercase font-bold tracking-wider">Registered Partners ({vendors.length})</div>
+             <div className="text-[10px] text-zinc-400 font-mono tracking-widest flex items-center gap-1.5">
+                <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></div> LIVE
+             </div>
           </div>
           
-          {vendors.map((v) => (
-            <div 
-              key={v.vendor_id}
-              onClick={() => runScan(v.vendor_id)}
-              className={`p-4 rounded-xl border cursor-pointer transition-all flex justify-between items-center group relative overflow-hidden
-                ${analyticsId === v.vendor_id 
-                  ? 'bg-zinc-900 border-white/40 text-white shadow-xl shadow-black/50' 
-                  : 'bg-zinc-950 border-zinc-800 hover:bg-zinc-900 hover:border-zinc-700'}`}
-            >
-              {analyticsId === v.vendor_id && <div className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500 animate-pulse"></div>}
-              
-              <div className="flex items-center gap-4">
-                <div className={`w-10 h-10 rounded-lg flex items-center justify-center border 
-                  ${analyticsId === v.vendor_id ? 'bg-emerald-500/10 border-emerald-500/50 text-emerald-500' : 'bg-zinc-900 border-zinc-800 text-zinc-400'}`}>
-                  <Factory size={18} />
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold tracking-tight">{v.name}</h3>
-                  <div className="text-xs text-zinc-500 font-mono flex items-center gap-2">
-                    {v.vendor_id}
-                    {analyticsId === v.vendor_id && <span className="text-emerald-500 text-[10px] uppercase font-bold tracking-wider animate-pulse">• Scanning</span>}
+          {vendors.map((v) => {
+            const displayId = v.vendor_id || (v._id && v._id.$oid) || v._id || 'UNKNOWN';
+            const isSelected = analyticsId === displayId;
+
+            return (
+              <div 
+                key={displayId}
+                onClick={() => runScan(displayId)}
+                className={`p-4 rounded-xl border cursor-pointer transition-all flex justify-between items-center group
+                  ${isSelected 
+                    ? 'bg-[#111111] border-zinc-500' 
+                    : 'bg-[#0a0a0a] border-zinc-800 hover:bg-[#111111]'}`}
+              >
+                <div className="flex items-center gap-4 pl-1">
+                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center border transition-colors
+                    ${isSelected ? 'bg-zinc-800 border-zinc-600 text-white' : 'bg-[#050505] border-zinc-800 text-zinc-500'}`}>
+                    <Cpu size={18} />
+                  </div>
+                  <div>
+                    <h3 className={`text-sm font-bold tracking-tight ${isSelected ? 'text-white' : 'text-zinc-300'}`}>
+                      {v.name || 'Unnamed Vendor'}
+                    </h3>
+                    <div className="text-xs text-zinc-500 font-mono flex items-center gap-2 mt-0.5">
+                      {displayId}
+                    </div>
                   </div>
                 </div>
+                <div className="flex flex-col items-end gap-1">
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider border
+                    ${isSelected ? 'bg-zinc-800 border-zinc-700 text-zinc-300' : 'bg-[#050505] border-zinc-800 text-zinc-600'}`}>
+                    {v.category || 'General'}
+                  </span>
+                  {isSelected && <TrendingUp size={14} className="text-zinc-400 mt-1" />}
+                </div>
               </div>
-              <div className="flex items-center gap-4">
-                <span className="text-[10px] text-zinc-400 font-medium px-2 py-1 rounded bg-zinc-900 border border-zinc-800 uppercase tracking-wider">
-                  {v.category}
-                </span>
-                <TrendingUp size={16} className={`transition-all ${analyticsId === v.vendor_id ? 'text-emerald-500 opacity-100' : 'text-zinc-600 opacity-50'}`} />
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
-        {/* RIGHT: Advanced Analytics "Black Box" */}
-        <div className="col-span-12 lg:col-span-5 h-full flex flex-col">
-          <div className="obsidian-card h-full p-0 flex flex-col bg-zinc-950/80 backdrop-blur-md border-zinc-800 overflow-hidden relative shadow-2xl">
+        {/* RIGHT: Advanced Analytics "Terminal" */}
+        <div className="col-span-12 lg:col-span-7 h-full flex flex-col">
+          <div className="h-full rounded-2xl flex flex-col bg-[#0a0a0a] border border-zinc-800 overflow-hidden">
             
-            {/* Header / Search */}
-            <div className="p-6 border-b border-white/5 bg-zinc-900/90 z-10">
+            {/* Header / Search Area */}
+            <div className="p-6 border-b border-zinc-800 bg-[#0a0a0a] z-10">
               <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xs font-bold text-white uppercase tracking-widest flex items-center gap-2">
-                  <BarChart2 size={14} className="text-emerald-500"/> Diagnostic Terminal
+                <h2 className="text-sm font-bold text-white uppercase tracking-widest flex items-center gap-2">
+                  <Activity size={16} className="text-zinc-400"/> Diagnostic Terminal
                 </h2>
-                {displayStats && (
-                   <span className={`text-[10px] px-2 py-0.5 rounded border uppercase tracking-wider font-bold flex items-center gap-1.5
-                     ${(displayStats.local_metrics?.durability_score || 0) > 90 
-                       ? 'text-emerald-400 border-emerald-500/30 bg-emerald-500/10' 
-                       : 'text-amber-400 border-amber-500/30 bg-amber-500/10'}`}>
-                     <ShieldCheck size={10} />
-                     {(displayStats.local_metrics?.durability_score || 0) > 90 ? 'VERIFIED VENDOR' : 'AUDIT PENDING'}
+                {stats && stats.local_metrics && (
+                   <span className={`text-[10px] px-3 py-1 rounded border uppercase tracking-wider font-bold flex items-center gap-1.5
+                     ${(stats.local_metrics.durability_score || 0) >= 90 
+                       ? 'text-emerald-400 border-emerald-900/50 bg-emerald-950/20' 
+                       : 'text-amber-400 border-amber-900/50 bg-amber-950/20'}`}>
+                     <ShieldCheck size={12} />
+                     {(stats.local_metrics.durability_score || 0) >= 90 ? 'VERIFIED VENDOR' : 'UNDER REVIEW'}
                    </span>
                 )}
               </div>
               
               <div className="relative group">
-                <Search className="absolute left-3 top-3 text-zinc-500 group-focus-within:text-white transition-colors" size={14} />
+                <Search className="absolute left-3 top-3.5 text-zinc-500" size={16} />
                 <input 
                   value={analyticsId}
                   onChange={(e) => setAnalyticsId(e.target.value)}
-                  placeholder="SELECT OR SCAN VENDOR ID..." 
-                  className="pl-9 w-full bg-black/50 border-zinc-800 focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/20 transition-all font-mono text-sm py-2.5 rounded-lg text-emerald-400 placeholder-zinc-700"
+                  placeholder="Select or scan vendor ID..." 
+                  className="pl-10 w-full bg-[#050505] border border-zinc-800 focus:border-zinc-500 transition-all font-mono text-sm py-3 rounded-lg text-white placeholder-zinc-600 outline-none"
                 />
               </div>
             </div>
 
-            {/* Content Area */}
-            <div className="flex-1 overflow-y-auto p-6 scrollbar-hide bg-[url('https://grainy-gradients.vercel.app/noise.svg')] bg-opacity-5">
+            {/* Main Content Area */}
+            <div className="flex-1 overflow-y-auto p-8 scrollbar-hide bg-[#050505]">
               {loading ? (
-                 <div className="h-full flex flex-col items-center justify-center gap-6 opacity-70">
-                   <div className="relative">
-                      <div className="w-16 h-16 border-2 border-emerald-500/20 border-t-emerald-400 rounded-full animate-spin"></div>
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <Activity size={20} className="text-emerald-500 animate-pulse" />
-                      </div>
-                   </div>
-                   <div className="text-center">
-                      <div className="text-xs text-emerald-500 font-mono uppercase tracking-widest mb-1">Decentralized Scan Active</div>
-                      <div className="text-[10px] text-zinc-600 font-mono">Verifying Blockchain Ledger...</div>
-                   </div>
+                 <div className="h-full flex flex-col items-center justify-center gap-6">
+                   <div className="w-10 h-10 border-2 border-zinc-800 border-t-white rounded-full animate-spin"></div>
+                   <div className="text-xs text-zinc-500 font-mono uppercase tracking-widest">Decrypting Telemetry...</div>
                  </div>
-              ) : displayStats ? (
-                <div className="space-y-8 animate-in slide-in-from-bottom-4 duration-700 fade-in">
+              ) : stats && stats.local_metrics ? (
+                <div className="space-y-8 animate-in fade-in duration-500">
                   
-                  {/* 1. Main Score Card */}
-                  <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-zinc-900 to-black border border-white/5 p-6 text-center group">
-                     {/* Dynamic Background Glow */}
-                     <div className={`absolute top-0 left-1/2 -translate-x-1/2 w-24 h-1 bg-gradient-to-r from-transparent via-${displayStats.local_metrics?.durability_score > 90 ? 'emerald' : 'red'}-500 to-transparent opacity-50 blur-sm`}></div>
-                     
-                     <div className="text-5xl font-mono font-light text-white tracking-tighter relative z-10 flex justify-center items-baseline gap-1">
-                      {displayStats.local_metrics?.durability_score || 0}<span className="text-lg text-zinc-500 font-sans">%</span>
+                  {/* 1. Main Score Card (Durability) */}
+                  <div className="rounded-2xl bg-[#0a0a0a] border border-zinc-800 p-8 text-center flex flex-col items-center justify-center">
+                     <div className="text-6xl font-mono font-light text-white tracking-tighter flex items-baseline gap-1">
+                      {stats.local_metrics.durability_score}<span className="text-xl text-zinc-500 font-sans">%</span>
                     </div>
-                    <div className="text-[10px] text-zinc-500 uppercase tracking-[0.2em] mt-2 font-bold">Durability Confidence</div>
+                    <div className="text-xs text-zinc-500 uppercase tracking-[0.2em] mt-3 font-bold">Overall Durability Index</div>
                   </div>
 
                   {/* 2. Key Metrics Grid */}
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="bg-zinc-900/40 p-3 rounded-lg border border-white/5 hover:border-white/10 transition-colors">
-                      <div className="text-[10px] text-zinc-500 uppercase flex items-center gap-1.5 mb-1">
-                        <Star size={10} className="text-amber-400" /> Global Rating
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="bg-[#0a0a0a] p-5 rounded-xl border border-zinc-800 flex flex-col justify-between">
+                      <div className="text-[10px] text-zinc-500 uppercase flex items-center gap-1.5 mb-3 font-bold tracking-widest">
+                        <Activity size={12} /> Total Jobs
                       </div>
-                      <div className="text-lg font-mono text-white flex items-end gap-1">
-                        {displayStats.local_metrics?.company_local_rating || 0}
-                        <span className="text-[10px] text-zinc-600 mb-1">/ 5.0</span>
+                      <div className="text-2xl font-mono text-white">
+                        {stats.local_metrics.total_jobs}
+                      </div>
+                    </div>
+
+                    <div className="bg-[#0a0a0a] p-5 rounded-xl border border-zinc-800 flex flex-col justify-between">
+                      <div className="text-[10px] text-zinc-500 uppercase flex items-center gap-1.5 mb-3 font-bold tracking-widest">
+                        <AlertOctagon size={12} /> Failures
+                      </div>
+                      <div className={`text-2xl font-mono ${stats.local_metrics.failed_jobs > 0 ? 'text-red-400' : 'text-emerald-400'}`}>
+                        {stats.local_metrics.failed_jobs}
                       </div>
                     </div>
                     
-                    <div className="bg-zinc-900/40 p-3 rounded-lg border border-white/5 hover:border-white/10 transition-colors">
-                      <div className="text-[10px] text-zinc-500 uppercase flex items-center gap-1.5 mb-1">
-                        <Clock size={10} className="text-blue-400" /> Response Time
+                    <div className="bg-[#0a0a0a] p-5 rounded-xl border border-zinc-800 flex flex-col justify-between">
+                      <div className="text-[10px] text-zinc-500 uppercase flex items-center gap-1.5 mb-3 font-bold tracking-widest">
+                        <Clock size={12} /> Response
                       </div>
-                      <div className="text-lg font-mono text-white flex items-end gap-1">
-                        {displayStats.local_metrics?.avg_response_time || 0}
-                        <span className="text-[10px] text-zinc-600 mb-1">hrs</span>
-                      </div>
-                    </div>
-
-                    <div className="bg-zinc-900/40 p-3 rounded-lg border border-white/5 hover:border-white/10 transition-colors">
-                      <div className="text-[10px] text-zinc-500 uppercase flex items-center gap-1.5 mb-1">
-                        <CheckCircle2 size={10} className="text-emerald-400" /> Success Rate
-                      </div>
-                      <div className="text-lg font-mono text-white">
-                        {((displayStats.local_metrics?.total_jobs - displayStats.local_metrics?.failed_jobs) / displayStats.local_metrics?.total_jobs * 100).toFixed(1)}%
+                      <div className="text-2xl font-mono text-white flex items-baseline gap-1">
+                        {stats.local_metrics.avg_response_time} <span className="text-[10px] text-zinc-600">hrs</span>
                       </div>
                     </div>
 
-                    <div className="bg-zinc-900/40 p-3 rounded-lg border border-white/5 hover:border-white/10 transition-colors">
-                      <div className="text-[10px] text-zinc-500 uppercase flex items-center gap-1.5 mb-1">
-                        <AlertOctagon size={10} className="text-red-400" /> Defect Count
+                    <div className="bg-[#0a0a0a] p-5 rounded-xl border border-zinc-800 flex flex-col justify-between">
+                      <div className="text-[10px] text-zinc-500 uppercase flex items-center gap-1.5 mb-3 font-bold tracking-widest">
+                        <CheckCircle2 size={12} /> Success Rate
                       </div>
-                      <div className={`text-lg font-mono ${displayStats.local_metrics?.failed_jobs > 0 ? 'text-red-400' : 'text-emerald-400'}`}>
-                        {displayStats.local_metrics?.failed_jobs || 0}
+                      <div className="text-2xl font-mono text-white flex items-baseline gap-1">
+                        {stats.local_metrics.total_jobs > 0 
+                          ? (((stats.local_metrics.total_jobs - stats.local_metrics.failed_jobs) / stats.local_metrics.total_jobs) * 100).toFixed(1) 
+                          : "100.0"}<span className="text-[10px] text-zinc-600">%</span>
                       </div>
                     </div>
                   </div>
 
-                  {/* 3. Recent Reviews Feed */}
-                  <div>
-                    <h4 className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-3 flex items-center gap-2">
-                      <MessageSquare size={12} /> Vendor Intelligence Feed
+                  {/* 3. Ratings & Feedback Intelligence Section */}
+                  <div className="bg-[#0a0a0a] rounded-2xl border border-zinc-800 p-6">
+                    <h4 className="text-xs font-bold text-white uppercase tracking-widest mb-6 flex items-center gap-2">
+                      <Star size={14} className="text-zinc-400"/> Rating & Sentiment Intelligence
                     </h4>
-                    <div className="space-y-2.5">
-                      {displayStats.local_metrics?.company_reviews?.length > 0 ? (
-                        displayStats.local_metrics.company_reviews.map((review: string, i: number) => (
-                          <div key={i} className="flex gap-3 text-xs bg-zinc-900/30 p-3 rounded-lg border border-white/5">
-                            <div className="w-1 h-full bg-zinc-700 rounded-full shrink-0"></div>
-                            <span className="text-zinc-300 italic leading-relaxed">"{review}"</span>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+                      {/* Local Rating Bar */}
+                      <div>
+                        <div className="flex justify-between items-end mb-2">
+                          <span className="text-xs text-zinc-500 font-mono">Company Rating</span>
+                          <span className="text-lg font-bold text-white font-mono">{stats.local_metrics.company_local_rating} <span className="text-xs text-zinc-600">/ 5.0</span></span>
+                        </div>
+                        <div className="h-1.5 w-full bg-[#111] rounded-full overflow-hidden">
+                          <div className="h-full bg-white" style={{ width: `${(stats.local_metrics.company_local_rating / 5) * 100}%` }}></div>
+                        </div>
+                      </div>
+
+                      {/* Global/Avg Rating Bar */}
+                      <div>
+                        <div className="flex justify-between items-end mb-2">
+                          <span className="text-xs text-zinc-500 font-mono">Global Avg Score</span>
+                          <span className="text-lg font-bold text-white font-mono">{stats.local_metrics.avg_rating} <span className="text-xs text-zinc-600">/ 100</span></span>
+                        </div>
+                        <div className="h-1.5 w-full bg-[#111] rounded-full overflow-hidden">
+                          <div className={`h-full ${stats.local_metrics.avg_rating >= 70 ? 'bg-white' : 'bg-zinc-500'}`} style={{ width: `${stats.local_metrics.avg_rating}%` }}></div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Submit New Feedback Form */}
+                    <div className="bg-[#111] border border-zinc-800 rounded-xl p-4 mb-6">
+                      <div className="flex justify-between items-center mb-3">
+                        <span className="text-xs font-bold text-zinc-400 uppercase tracking-widest">Submit Internal Report</span>
+                        <div className="flex gap-1">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <Star 
+                              key={star} 
+                              size={16} 
+                              onClick={() => setFeedbackForm({...feedbackForm, rating: star})}
+                              className={`cursor-pointer transition-colors ${feedbackForm.rating >= star ? 'text-white fill-white' : 'text-zinc-700'}`}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                      <div className="flex gap-3">
+                        <input 
+                          value={feedbackForm.review}
+                          onChange={(e) => setFeedbackForm({...feedbackForm, review: e.target.value})}
+                          placeholder="Log vendor performance details..."
+                          className="flex-1 bg-[#050505] border border-zinc-800 rounded-lg px-3 py-2 text-sm text-white focus:border-zinc-500 outline-none font-mono"
+                          onKeyDown={(e) => e.key === 'Enter' && submitFeedback()}
+                        />
+                        <button 
+                          onClick={submitFeedback}
+                          disabled={isSubmitting || !feedbackForm.review.trim()}
+                          className="bg-white text-black px-4 py-2 rounded-lg flex items-center justify-center disabled:opacity-50 hover:bg-zinc-200 transition-colors"
+                        >
+                          {isSubmitting ? <div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin"></div> : <Send size={16} />}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Review Terminal Logs */}
+                    <div className="space-y-3">
+                      <div className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold mb-3">Historical Logs</div>
+                      {stats.local_metrics.company_reviews && stats.local_metrics.company_reviews.length > 0 ? (
+                        stats.local_metrics.company_reviews.map((review: string, i: number) => (
+                          <div key={i} className="flex gap-4 text-sm bg-[#050505] p-4 rounded-lg border border-zinc-800">
+                            <MessageSquare size={16} className="text-zinc-600 shrink-0 mt-0.5" />
+                            <span className="text-zinc-300 leading-relaxed font-mono text-xs">"{review}"</span>
                           </div>
                         ))
                       ) : (
-                        <div className="text-xs text-zinc-600 italic border border-dashed border-zinc-800 p-4 rounded text-center">No recent feedback logs found.</div>
+                        <div className="text-xs text-zinc-600 italic border border-dashed border-zinc-800 p-6 rounded-lg text-center bg-[#050505]">
+                          No sentiment data logged for this entity.
+                        </div>
                       )}
                     </div>
                   </div>
 
                   {/* 4. Contact Footer */}
-                  <div className="pt-4 border-t border-white/5 flex items-center justify-between">
+                  <div className="pt-2 flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-md bg-white/5 flex items-center justify-center text-white">
-                        <Mail size={14} />
+                      <div className="w-10 h-10 rounded-lg bg-[#0a0a0a] flex items-center justify-center text-zinc-400 border border-zinc-800">
+                        <Mail size={16} />
                       </div>
                       <div className="flex flex-col">
-                         <span className="text-[10px] text-zinc-500 uppercase font-bold">Secure Contact</span>
-                         <span className="text-xs text-white font-mono">{displayStats.contact?.email || 'N/A'}</span>
+                         <span className="text-[10px] text-zinc-500 uppercase font-bold tracking-widest">Secure Contact Channel</span>
+                         <span className="text-sm text-white font-mono">{stats.contact?.email || 'N/A'}</span>
                       </div>
                     </div>
-                    <button className="px-3 py-1.5 bg-zinc-800 text-white text-[10px] font-bold uppercase tracking-wider rounded border border-zinc-700 hover:bg-zinc-700">
-                      Message
-                    </button>
                   </div>
 
                 </div>
               ) : (
                 <div className="h-full flex flex-col items-center justify-center text-zinc-600 gap-4">
-                  <div className="w-20 h-20 rounded-full bg-zinc-900 border border-zinc-800 flex items-center justify-center opacity-50">
-                     <ShieldCheck size={32} />
+                  <div className="w-20 h-20 rounded-full bg-[#0a0a0a] border border-zinc-800 flex items-center justify-center">
+                     <ShieldCheck size={32} className="opacity-50" />
                   </div>
                   <div className="text-center">
-                    <div className="text-sm font-bold text-zinc-500 uppercase tracking-wider">System Ready</div>
-                    <div className="text-xs mt-1">Select a vendor to decrypt performance metrics</div>
+                    <div className="text-sm font-bold text-zinc-500 uppercase tracking-widest">Terminal Ready</div>
+                    <div className="text-xs mt-2 font-mono">Select a vendor to decrypt telemetry data</div>
                   </div>
                 </div>
               )}
